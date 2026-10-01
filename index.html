@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0B0F14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Strike Lab">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icons/icon-180.png">
+  <title>Strike Price Lab</title>
+  <style>
+    :root{
+      --bg:#090C10;--bg2:#0D1218;--panel:#121820;--panel2:#17202A;--line:#27313D;
+      --text:#F7FAFC;--muted:#98A6B7;--blue:#2F95FF;--green:#42D77D;--yellow:#FFB94C;--red:#FF6464;
+      --safe-top:env(safe-area-inset-top);--safe-bottom:env(safe-area-inset-bottom);
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",sans-serif}
+    body{background:radial-gradient(circle at 50% -10%,#18395b 0%,#0c1219 31%,#090c10 68%) fixed;}
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    .shell{max-width:430px;margin:0 auto;min-height:100vh;padding:calc(12px + var(--safe-top)) 14px calc(90px + var(--safe-bottom))}
+    .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+    .brand{display:flex;align-items:center;gap:10px}
+    .logo{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(145deg,#1777e9,#45b9ff);font-weight:900;box-shadow:0 8px 25px #0008}
+    .brand h1{font-size:18px;margin:0}.brand p{margin:2px 0 0;color:var(--muted);font-size:12px}
+    .mode{border:1px solid var(--line);background:#10161d;color:#a9b7c6;border-radius:999px;padding:7px 9px;font-size:11px}
+    .card{background:linear-gradient(180deg,#141b23,#10161d);border:1px solid var(--line);border-radius:22px;padding:15px;margin:10px 0;box-shadow:0 16px 40px #0006}
+    .section-title{font-size:14px;font-weight:800;margin:0 0 11px;color:#e9f0f7}
+    label{display:block;font-size:11px;color:var(--muted);margin:0 0 6px}
+    input,select{width:100%;background:#0c1117;border:1px solid #303b48;border-radius:14px;color:var(--text);padding:13px 12px;outline:none}
+    input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px #2f95ff22}
+    .row{display:flex;gap:9px}.grow{flex:1}
+    .btn{border:0;border-radius:14px;padding:13px 15px;font-weight:800}
+    .primary{background:var(--blue);color:#06111d}.secondary{background:#202a35;color:white;border:1px solid #303b48}.ghost{background:transparent;color:var(--blue)}
+    .tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;background:#0c1117;border:1px solid var(--line);border-radius:15px;padding:5px;margin-top:12px}
+    .tab{border:0;background:transparent;color:var(--muted);padding:9px 2px;border-radius:11px;font-weight:700;font-size:12px}
+    .tab.active{background:#F6F8FB;color:#111820}
+    .seg{display:grid;grid-template-columns:1fr 1fr;gap:5px;background:#0c1117;border:1px solid var(--line);border-radius:15px;padding:5px}
+    .seg button{border:0;background:transparent;color:var(--muted);padding:9px 6px;border-radius:11px;font-size:12px;font-weight:700}
+    .seg button.active{background:#F6F8FB;color:#10161d}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+    .range-line{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+    input[type=range]{padding:0;border:0;background:transparent;accent-color:var(--blue)}
+    .pct{border:1px solid var(--line);background:#0c1117;padding:7px 9px;border-radius:999px;font-size:12px}
+    .hero{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start}
+    .ticker{font-size:30px;font-weight:900;letter-spacing:-.03em}.subtle{color:var(--muted);font-size:12px}
+    .price{text-align:right}.price strong{font-size:25px}
+    .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:13px}
+    .metric{background:#0c1117;border:1px solid var(--line);border-radius:14px;padding:10px}
+    .metric span{display:block;color:var(--muted);font-size:10px}.metric b{display:block;margin-top:4px;font-size:14px}
+    .targets{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:13px}
+    .target{background:#0d131a;border:1px solid var(--line);border-radius:17px;text-align:center;padding:13px 5px}
+    .target.low{border-top:4px solid var(--green)}.target.mid{border-top:4px solid var(--yellow)}.target.high{border-top:4px solid var(--red)}
+    .target small{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.target .n{font-size:28px;font-weight:300;margin:7px 0 2px}
+    details{margin-top:13px;border-top:1px solid var(--line);padding-top:11px}summary{color:#dbe6f0;font-weight:700;font-size:13px}
+    pre{white-space:pre-wrap;font-size:11px;line-height:1.5;background:#0b1016;border:1px solid var(--line);border-radius:14px;padding:11px;color:#c9d7e4}
+    .status{font-size:11px;color:var(--muted);padding:9px 10px;border:1px solid var(--line);background:#0c1117;border-radius:12px;margin-top:10px}
+    .status.good{color:#bdf3ce;border-color:#2a6b42}.status.warn{color:#ffe1af;border-color:#6b512a}
+    .notice{font-size:10px;color:var(--muted);margin-top:8px;line-height:1.45}
+    .hidden{display:none!important}
+    .history-item{display:grid;grid-template-columns:1fr auto;gap:8px;background:#0c1117;border:1px solid var(--line);border-radius:13px;padding:10px;margin:7px 0}
+    .history-item b{font-size:13px}.history-item small{color:var(--muted);font-size:9px}
+    .install-banner{display:none;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + var(--safe-bottom));width:min(404px,calc(100% - 24px));z-index:10;background:#18212b;border:1px solid #344253;border-radius:18px;padding:12px;box-shadow:0 18px 45px #000b}
+    .install-banner.show{display:block}.install-banner strong{font-size:13px}.install-banner p{font-size:11px;color:var(--muted);margin:4px 0 8px}
+    .foot{color:#6f7e8e;text-align:center;font-size:9px;margin-top:14px}
+    @media (display-mode:standalone){.install-banner{display:none!important}}
+  </style>
+</head>
+<body>
+<div class="shell">
+  <div class="top">
+    <div class="brand">
+      <div class="logo">SP</div>
+      <div><h1>Strike Price Lab</h1><p>iPhone entry-target calculator</p></div>
+    </div>
+    <div class="mode" id="modeBadge">Manual</div>
+  </div>
+
+  <section class="card">
+    <div class="row">
+      <div class="grow">
+        <label>Ticker</label>
+        <input id="ticker" value="AAPL" autocapitalize="characters" autocomplete="off" placeholder="AAPL">
+      </div>
+      <button id="analyzeBtn" class="btn primary" style="align-self:end">Analyze</button>
+    </div>
+    <div class="tabs" id="periodTabs">
+      <button class="tab" data-p="3m">3M</button>
+      <button class="tab" data-p="6m">6M</button>
+      <button class="tab active" data-p="1y">1Y</button>
+      <button class="tab" data-p="2y">2Y</button>
+      <button class="tab" data-p="3y">3Y</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 class="section-title">Correction & holding model</h2>
+    <div>
+      <label>Correction amount</label>
+      <div class="range-line">
+        <input id="correction" type="range" min="0" max="30" step="1" value="10">
+        <div class="pct"><span id="corrLabel">10</span>%</div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:10px">
+      <div><label>Holding divisor</label><input id="divisor" type="number" min="0.1" step="0.1" value="2"></div>
+      <div><label>Strike increment</label>
+        <select id="increment">
+          <option value="0.5">$0.50</option><option value="1" selected>$1</option><option value="2.5">$2.50</option><option value="5">$5</option><option value="10">$10</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 class="section-title">Market data</h2>
+    <div class="seg" id="dataSeg">
+      <button class="active" data-mode="manual">Manual</button>
+      <button data-mode="api">Alpha Vantage</button>
+    </div>
+    <div id="manualBox" style="margin-top:10px">
+      <div class="grid2">
+        <div><label>Current price</label><input id="price" type="number" step="0.01" value="192.75"></div>
+        <div><label>Historical performance ($)</label><input id="perf" type="number" step="0.01" value="39.57"></div>
+      </div>
+      <div class="notice">Performance is treated as a dollar price change for the selected horizon, matching your thinkBig AAPL example.</div>
+    </div>
+    <div id="apiBox" class="hidden" style="margin-top:10px">
+      <label>Alpha Vantage API key</label>
+      <input id="apiKey" type="password" placeholder="Saved only in this browser">
+      <div class="row" style="margin-top:8px">
+        <button class="btn secondary grow" id="fetchBtn">Fetch market data</button>
+        <button class="btn ghost" id="forgetBtn">Forget</button>
+      </div>
+      <div class="notice">Uses current quote + weekly history. Data freshness depends on your Alpha Vantage plan.</div>
+    </div>
+    <div class="status" id="status">Ready.</div>
+  </section>
+
+  <section class="card">
+    <div class="hero">
+      <div><div class="ticker" id="outTicker">AAPL</div><div class="subtle" id="outHorizon">1-Year • 10% correction</div></div>
+      <div class="price"><span class="subtle">Current</span><br><strong id="outPrice">$192.75</strong></div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><span>Performance</span><b id="outPerf">$39.57</b></div>
+      <div class="metric"><span>Adjusted</span><b id="outAdjusted">$19.79</b></div>
+      <div class="metric"><span>Projected</span><b id="outProjected">$212.54</b></div>
+    </div>
+
+    <div class="targets">
+      <div class="target low"><small>Low</small><div class="n" id="low">$192</div><div class="subtle">defensive</div></div>
+      <div class="target mid"><small>Mid</small><div class="n" id="mid">$202</div><div class="subtle">moderate</div></div>
+      <div class="target high"><small>High</small><div class="n" id="high">$213</div><div class="subtle">aggressive</div></div>
+    </div>
+
+    <details>
+      <summary>Show calculation</summary>
+      <pre id="details"></pre>
+    </details>
+    <div class="notice" id="extra"></div>
+  </section>
+
+  <section class="card">
+    <h2 class="section-title">Validation</h2>
+    <div class="row">
+      <button class="btn secondary grow" id="aaplPreset">AAPL 2023</button>
+      <button class="btn secondary grow" id="xlkPreset">XLK 2021</button>
+    </div>
+    <div class="status good" id="validation">AAPL expected: Low $192 • Mid $202 • High $213</div>
+  </section>
+
+  <section class="card">
+    <h2 class="section-title">Saved analyses</h2>
+    <div id="history"></div>
+    <button class="btn secondary" id="saveBtn" style="width:100%;margin-top:6px">Save current analysis</button>
+  </section>
+
+  <div class="foot">Strike Price Lab • personal research tool • informational only</div>
+</div>
+
+<div class="install-banner" id="installBanner">
+  <strong>Add Strike Price Lab to your Home Screen</strong>
+  <p>On iPhone Safari: tap Share → Add to Home Screen → Add.</p>
+  <button class="btn secondary" id="dismissInstall" style="width:100%">Got it</button>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const PERIODS={
+  "3m":{label:"3-Month",months:3,divisor:2},
+  "6m":{label:"6-Month",months:6,divisor:2},
+  "1y":{label:"1-Year",months:12,divisor:2},
+  "2y":{label:"2-Year",months:24,divisor:1.5},
+  "3y":{label:"3-Year",months:36,divisor:2}
+};
+let state={period:"1y",mode:"manual",extra:{}};
+
+function money(n,d=2){return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",minimumFractionDigits:d,maximumFractionDigits:d}).format(n)}
+function roundUp(v,inc){return Math.ceil((v-1e-9)/inc)*inc}
+function calc(){
+  const p=+$("price").value, perf=+$("perf").value, div=+$("divisor").value, c=+$("correction").value/100, inc=+$("increment").value;
+  if(![p,perf,div,c,inc].every(Number.isFinite)||div<=0||inc<=0)return null;
+  const adjusted=perf/div;
+  const projected=p+adjusted;
+  const highRaw=projected;
+  const midRaw=projected*(1-c/2);
+  const lowRaw=projected*(1-c);
+  return {p,perf,div,c,inc,adjusted,projected,highRaw,midRaw,lowRaw,high:roundUp(highRaw,inc),mid:roundUp(midRaw,inc),low:roundUp(lowRaw,inc)};
+}
+function render(){
+  const r=calc();if(!r)return;
+  const t=$("ticker").value.trim().toUpperCase()||"—";
+  $("outTicker").textContent=t;
+  $("outHorizon").textContent=`${PERIODS[state.period].label} • ${Math.round(r.c*100)}% correction`;
+  $("outPrice").textContent=money(r.p);
+  $("outPerf").textContent=money(r.perf);
+  $("outAdjusted").textContent=money(r.adjusted);
+  $("outProjected").textContent=money(r.projected);
+  const d=r.inc<1?2:(Number.isInteger(r.inc)?0:2);
+  $("low").textContent=money(r.low,d); $("mid").textContent=money(r.mid,d); $("high").textContent=money(r.high,d);
+  $("details").textContent=
+`${PERIODS[state.period].label}
+Current price: ${money(r.p)}
+Historical performance: ${money(r.perf)}
+Holding adjustment: ${money(r.perf)} ÷ ${r.div} = ${money(r.adjusted)}
+Projected target: ${money(r.p)} + ${money(r.adjusted)} = ${money(r.projected)}
+
+HIGH: ${money(r.projected)} → ${money(r.high,d)}
+MID: ${money(r.projected)} × ${(1-r.c/2).toFixed(3)} = ${money(r.midRaw)} → ${money(r.mid,d)}
+LOW: ${money(r.projected)} × ${(1-r.c).toFixed(3)} = ${money(r.lowRaw)} → ${money(r.low,d)}
+
+Rounded upward to nearest ${money(r.inc,r.inc<1?2:0)} strike increment.`;
+  const extras=[];
+  if(state.extra.baselineDate)extras.push(`Baseline ${state.extra.baselineDate}: ${money(state.extra.baselineClose)}`);
+  if(Number.isFinite(state.extra.returnPct))extras.push(`Return: ${state.extra.returnPct.toFixed(2)}%`);
+  if(Number.isFinite(state.extra.high52))extras.push(`52W high: ${money(state.extra.high52)}`);
+  if(Number.isFinite(state.extra.low52))extras.push(`52W low: ${money(state.extra.low52)}`);
+  if(state.extra.trend1m)extras.push(`1M: ${state.extra.trend1m}`);
+  if(state.extra.trend3m)extras.push(`3M: ${state.extra.trend3m}`);
+  $("extra").textContent=extras.join(" • ");
+}
+function setPeriod(p){
+  state.period=p;
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.p===p));
+  $("divisor").value=PERIODS[p].divisor; render();
+}
+function setMode(m){
+  state.mode=m;
+  document.querySelectorAll("#dataSeg button").forEach(b=>b.classList.toggle("active",b.dataset.mode===m));
+  $("manualBox").classList.toggle("hidden",m!=="manual");
+  $("apiBox").classList.toggle("hidden",m!=="api");
+  $("modeBadge").textContent=m==="api"?"API":"Manual";
+}
+function status(msg,kind=""){
+  $("status").textContent=msg;$("status").className="status"+(kind?` ${kind}`:"")
+}
+function shiftMonths(d,m){const x=new Date(d);x.setMonth(x.getMonth()+m);return x}
+function prior(series,target){
+  const ds=Object.keys(series).sort((a,b)=>new Date(b)-new Date(a));
+  for(const d of ds)if(new Date(d)<=target)return {date:d,row:series[d]};
+  return null;
+}
+async function fetchData(){
+  const ticker=$("ticker").value.trim().toUpperCase(),key=$("apiKey").value.trim();
+  if(!ticker||!key){status("Enter a ticker and API key.","warn");return}
+  localStorage.setItem("splab_key",key);status("Fetching quote and weekly history…");$("fetchBtn").disabled=true;
+  try{
+    const base="https://www.alphavantage.co/query";
+    const [qr,wr]=await Promise.all([
+      fetch(`${base}?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(ticker)}&apikey=${encodeURIComponent(key)}`),
+      fetch(`${base}?function=TIME_SERIES_WEEKLY&symbol=${encodeURIComponent(ticker)}&apikey=${encodeURIComponent(key)}`)
+    ]);
+    const q=await qr.json(),w=await wr.json();
+    if(q.Note||w.Note)throw new Error("API rate limit reached.");
+    if(q.Information||w.Information)throw new Error(q.Information||w.Information);
+    const spot=Number(q?.["Global Quote"]?.["05. price"]),series=w?.["Weekly Time Series"];
+    if(!Number.isFinite(spot)||!series)throw new Error("Market data unavailable for that ticker.");
+    const basePt=prior(series,shiftMonths(new Date(),-PERIODS[state.period].months));
+    if(!basePt)throw new Error("Not enough history for this horizon.");
+    const baseline=Number(basePt.row["4. close"]);
+    const perf=spot-baseline;
+    const dates=Object.keys(series).sort((a,b)=>new Date(b)-new Date(a));
+    const last52=dates.slice(0,52);
+    const highs=last52.map(d=>Number(series[d]["2. high"])).filter(Number.isFinite);
+    const lows=last52.map(d=>Number(series[d]["3. low"])).filter(Number.isFinite);
+    const p1=prior(series,shiftMonths(new Date(),-1)),p3=prior(series,shiftMonths(new Date(),-3));
+    const trend=b=>!b?"—":spot>Number(b.row["4. close"])?"Up":spot<Number(b.row["4. close"])?"Down":"Flat";
+    $("price").value=spot.toFixed(2);$("perf").value=perf.toFixed(2);
+    state.extra={baselineDate:basePt.date,baselineClose:baseline,returnPct:(perf/baseline)*100,high52:Math.max(...highs),low52:Math.min(...lows),trend1m:trend(p1),trend3m:trend(p3)};
+    status(`Loaded ${ticker}.`,"good");render()
+  }catch(e){status(e.message||"Fetch failed. Manual mode still works.","warn")}
+  finally{$("fetchBtn").disabled=false}
+}
+function loadPreset(which){
+  setMode("manual");state.extra={};$("correction").value=10;$("corrLabel").textContent="10";$("increment").value="1";
+  if(which==="aapl"){
+    $("ticker").value="AAPL";$("price").value="192.75";$("perf").value="39.57";setPeriod("1y");
+    render();const r=calc();const ok=r.low===192&&r.mid===202&&r.high===213;
+    $("validation").textContent=ok?"✓ AAPL validation passes: $192 / $202 / $213":`Mismatch: ${r.low}/${r.mid}/${r.high}`;
+    $("validation").className="status "+(ok?"good":"warn");
+  }else{
+    $("ticker").value="XLK";$("price").value="159.17";$("perf").value="6.51";setPeriod("3m");render();
+    $("validation").textContent="XLK Oct 27, 2021 inputs loaded."; $("validation").className="status";
+  }
+}
+function saveCurrent(){
+  const r=calc();if(!r)return;const arr=JSON.parse(localStorage.getItem("splab_history")||"[]");
+  arr.unshift({ticker:$("ticker").value.trim().toUpperCase(),p:state.period,c:Math.round(r.c*100),low:r.low,mid:r.mid,high:r.high,at:new Date().toISOString()});
+  localStorage.setItem("splab_history",JSON.stringify(arr.slice(0,12)));renderHistory()
+}
+function renderHistory(){
+  const arr=JSON.parse(localStorage.getItem("splab_history")||"[]"),el=$("history");
+  if(!arr.length){el.innerHTML='<div class="notice">No saved analyses yet.</div>';return}
+  el.innerHTML=arr.map(x=>`<div class="history-item"><div><b>${x.ticker}</b><br><small>${PERIODS[x.p]?.label||x.p} • ${new Date(x.at).toLocaleString()}</small></div><div style="text-align:right"><b>${money(x.low,0)} / ${money(x.mid,0)} / ${money(x.high,0)}</b><br><small>Low / Mid / High</small></div></div>`).join("")
+}
+$("periodTabs").addEventListener("click",e=>{if(e.target.dataset.p)setPeriod(e.target.dataset.p)});
+$("dataSeg").addEventListener("click",e=>{if(e.target.dataset.mode)setMode(e.target.dataset.mode)});
+["ticker","price","perf","divisor","increment"].forEach(id=>$(id).addEventListener("input",render));
+$("correction").addEventListener("input",()=>{$("corrLabel").textContent=$("correction").value;render()});
+$("analyzeBtn").addEventListener("click",()=>state.mode==="api"?fetchData():render());
+$("fetchBtn").addEventListener("click",fetchData);
+$("forgetBtn").addEventListener("click",()=>{localStorage.removeItem("splab_key");$("apiKey").value="";status("API key removed.")});
+$("aaplPreset").addEventListener("click",()=>loadPreset("aapl"));$("xlkPreset").addEventListener("click",()=>loadPreset("xlk"));$("saveBtn").addEventListener("click",saveCurrent);
+$("dismissInstall").addEventListener("click",()=>{localStorage.setItem("splab_install_hint","1");$("installBanner").classList.remove("show")});
+const key=localStorage.getItem("splab_key");if(key)$("apiKey").value=key;
+renderHistory();render();
+
+const isiOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+const standalone=window.matchMedia("(display-mode: standalone)").matches||navigator.standalone;
+if(isiOS&&!standalone&&!localStorage.getItem("splab_install_hint"))setTimeout(()=>$("installBanner").classList.add("show"),900);
+
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js").catch(()=>{});
+</script>
+</body>
+</html>

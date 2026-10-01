@@ -66,9 +66,13 @@
     .history-item b{font-size:13px}.history-item small{color:var(--muted);font-size:9px}
     .install-banner{display:none;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + var(--safe-bottom));width:min(404px,calc(100% - 24px));z-index:10;background:#18212b;border:1px solid #344253;border-radius:18px;padding:12px;box-shadow:0 18px 45px #000b}
     .install-banner.show{display:block}.install-banner strong{font-size:13px}.install-banner p{font-size:11px;color:var(--muted);margin:4px 0 8px}
-    .foot{color:#6f7e8e;text-align:center;font-size:9px;margin-top:14px}
+    .source-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}.source-badge{font-size:10px;color:#b8c8d8;border:1px solid #334253;background:#0c1117;border-radius:999px;padding:6px 8px}.source-link{font-size:10px;color:var(--blue);text-decoration:none}.foot{color:#6f7e8e;text-align:center;font-size:9px;margin-top:14px}
     @media (display-mode:standalone){.install-banner{display:none!important}}
-  </style>
+  
+    .history-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:6px;margin-top:5px}
+    .danger{background:#2b1518;color:#ff9da5;border:1px solid #5a252b}
+    .danger-lite{background:transparent;color:#ff868f;border:1px solid #4b252a}
+</style>
 </head>
 <body>
 <div class="shell">
@@ -120,23 +124,27 @@
     <h2 class="section-title">Market data</h2>
     <div class="seg" id="dataSeg">
       <button class="active" data-mode="manual">Manual</button>
-      <button data-mode="api">Alpha Vantage</button>
+      <button data-mode="barchart">Barchart</button>
     </div>
     <div id="manualBox" style="margin-top:10px">
       <div class="grid2">
         <div><label>Current price</label><input id="price" type="number" step="0.01" value="192.75"></div>
         <div><label>Historical performance ($)</label><input id="perf" type="number" step="0.01" value="39.57"></div>
       </div>
-      <div class="notice">Performance is treated as a dollar price change for the selected horizon, matching your thinkBig AAPL example.</div>
+      <div class="notice">Performance is a dollar price change over the selected horizon, matching the Barchart Price Performance format and your thinkBig example.</div>
     </div>
     <div id="apiBox" class="hidden" style="margin-top:10px">
-      <label>Alpha Vantage API key</label>
-      <input id="apiKey" type="password" placeholder="Saved only in this browser">
+      <label>Barchart OnDemand API key</label>
+      <input id="apiKey" type="password" placeholder="Saved only on this iPhone">
       <div class="row" style="margin-top:8px">
-        <button class="btn secondary grow" id="fetchBtn">Fetch market data</button>
+        <button class="btn secondary grow" id="fetchBtn">Load from Barchart</button>
         <button class="btn ghost" id="forgetBtn">Forget</button>
       </div>
-      <div class="notice">Uses current quote + weekly history. Data freshness depends on your Alpha Vantage plan.</div>
+      <div class="source-row">
+        <span class="source-badge">Source: Barchart OnDemand</span>
+        <a class="source-link" id="barchartLink" href="https://www.barchart.com/etfs-funds/quotes/AAPL/performance" target="_blank" rel="noopener">Open Barchart ↗</a>
+      </div>
+      <div class="notice">Uses Barchart getQuote for current market data and getHistory for the selected horizon. 3M/6M/1Y/2Y use daily history; 3Y uses weekly history to mirror Barchart's Performance Report period logic.</div>
     </div>
     <div class="status" id="status">Ready.</div>
   </section>
@@ -176,12 +184,15 @@
   </section>
 
   <section class="card">
-    <h2 class="section-title">Saved analyses</h2>
-    <div id="history"></div>
+    <div class="row" style="align-items:center;justify-content:space-between">
+      <h2 class="section-title" style="margin:0">Saved analyses</h2>
+      <button class="btn danger-lite" id="clearAllBtn" style="padding:8px 10px;font-size:11px">Clear all</button>
+    </div>
+    <div id="history" style="margin-top:10px"></div>
     <button class="btn secondary" id="saveBtn" style="width:100%;margin-top:6px">Save current analysis</button>
   </section>
 
-  <div class="foot">Strike Price Lab • personal research tool • informational only</div>
+  <div class="foot">Strike Price Lab • Barchart-powered market data • informational only</div>
 </div>
 
 <div class="install-banner" id="installBanner">
@@ -239,10 +250,14 @@ Rounded upward to nearest ${money(r.inc,r.inc<1?2:0)} strike increment.`;
   const extras=[];
   if(state.extra.baselineDate)extras.push(`Baseline ${state.extra.baselineDate}: ${money(state.extra.baselineClose)}`);
   if(Number.isFinite(state.extra.returnPct))extras.push(`Return: ${state.extra.returnPct.toFixed(2)}%`);
+  if(Number.isFinite(state.extra.periodHigh))extras.push(`${PERIODS[state.period].label} high: ${money(state.extra.periodHigh)}`);
+  if(Number.isFinite(state.extra.periodLow))extras.push(`${PERIODS[state.period].label} low: ${money(state.extra.periodLow)}`);
   if(Number.isFinite(state.extra.high52))extras.push(`52W high: ${money(state.extra.high52)}`);
   if(Number.isFinite(state.extra.low52))extras.push(`52W low: ${money(state.extra.low52)}`);
   if(state.extra.trend1m)extras.push(`1M: ${state.extra.trend1m}`);
   if(state.extra.trend3m)extras.push(`3M: ${state.extra.trend3m}`);
+  if(state.extra.marketMode)extras.push(`Barchart mode: ${state.extra.marketMode}`);
+  if(state.extra.tradeTimestamp)extras.push(`Quote: ${state.extra.tradeTimestamp}`);
   $("extra").textContent=extras.join(" • ");
 }
 function setPeriod(p){
@@ -254,48 +269,97 @@ function setMode(m){
   state.mode=m;
   document.querySelectorAll("#dataSeg button").forEach(b=>b.classList.toggle("active",b.dataset.mode===m));
   $("manualBox").classList.toggle("hidden",m!=="manual");
-  $("apiBox").classList.toggle("hidden",m!=="api");
-  $("modeBadge").textContent=m==="api"?"API":"Manual";
+  $("apiBox").classList.toggle("hidden",m!=="barchart");
+  $("modeBadge").textContent=m==="barchart"?"Barchart":"Manual";
 }
 function status(msg,kind=""){
   $("status").textContent=msg;$("status").className="status"+(kind?` ${kind}`:"")
 }
 function shiftMonths(d,m){const x=new Date(d);x.setMonth(x.getMonth()+m);return x}
-function prior(series,target){
-  const ds=Object.keys(series).sort((a,b)=>new Date(b)-new Date(a));
-  for(const d of ds)if(new Date(d)<=target)return {date:d,row:series[d]};
-  return null;
+function pad2(n){return String(n).padStart(2,"0")}
+function ymd(d){return `${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}`}
+function isoDay(s){return new Date(`${s}T12:00:00`)}
+function recordOnOrBefore(records,target){
+  const t=target.getTime();
+  const eligible=records.filter(r=>isoDay(r.tradingDay).getTime()<=t)
+    .sort((a,b)=>isoDay(b.tradingDay)-isoDay(a.tradingDay));
+  return eligible[0]||null;
+}
+function trendFrom(records,spot,months){
+  const rec=recordOnOrBefore(records,shiftMonths(new Date(),-months));
+  if(!rec)return "—";
+  const close=Number(rec.close);
+  return spot>close?"Up":spot<close?"Down":"Flat";
 }
 async function fetchData(){
   const ticker=$("ticker").value.trim().toUpperCase(),key=$("apiKey").value.trim();
-  if(!ticker||!key){status("Enter a ticker and API key.","warn");return}
-  localStorage.setItem("splab_key",key);status("Fetching quote and weekly history…");$("fetchBtn").disabled=true;
+  if(!ticker||!key){status("Enter a ticker and Barchart OnDemand API key.","warn");return}
+  localStorage.setItem("splab_barchart_key",key);
+  $("barchartLink").href=`https://www.barchart.com/etfs-funds/quotes/${encodeURIComponent(ticker)}/performance`;
+  status(`Loading ${ticker} from Barchart…`);
+  $("fetchBtn").disabled=true;
   try{
-    const base="https://www.alphavantage.co/query";
-    const [qr,wr]=await Promise.all([
-      fetch(`${base}?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(ticker)}&apikey=${encodeURIComponent(key)}`),
-      fetch(`${base}?function=TIME_SERIES_WEEKLY&symbol=${encodeURIComponent(ticker)}&apikey=${encodeURIComponent(key)}`)
-    ]);
-    const q=await qr.json(),w=await wr.json();
-    if(q.Note||w.Note)throw new Error("API rate limit reached.");
-    if(q.Information||w.Information)throw new Error(q.Information||w.Information);
-    const spot=Number(q?.["Global Quote"]?.["05. price"]),series=w?.["Weekly Time Series"];
-    if(!Number.isFinite(spot)||!series)throw new Error("Market data unavailable for that ticker.");
-    const basePt=prior(series,shiftMonths(new Date(),-PERIODS[state.period].months));
-    if(!basePt)throw new Error("Not enough history for this horizon.");
-    const baseline=Number(basePt.row["4. close"]);
-    const perf=spot-baseline;
-    const dates=Object.keys(series).sort((a,b)=>new Date(b)-new Date(a));
-    const last52=dates.slice(0,52);
-    const highs=last52.map(d=>Number(series[d]["2. high"])).filter(Number.isFinite);
-    const lows=last52.map(d=>Number(series[d]["3. low"])).filter(Number.isFinite);
-    const p1=prior(series,shiftMonths(new Date(),-1)),p3=prior(series,shiftMonths(new Date(),-3));
-    const trend=b=>!b?"—":spot>Number(b.row["4. close"])?"Up":spot<Number(b.row["4. close"])?"Down":"Flat";
-    $("price").value=spot.toFixed(2);$("perf").value=perf.toFixed(2);
-    state.extra={baselineDate:basePt.date,baselineClose:baseline,returnPct:(perf/baseline)*100,high52:Math.max(...highs),low52:Math.min(...lows),trend1m:trend(p1),trend3m:trend(p3)};
-    status(`Loaded ${ticker}.`,"good");render()
-  }catch(e){status(e.message||"Fetch failed. Manual mode still works.","warn")}
-  finally{$("fetchBtn").disabled=false}
+    const endpoint="https://ondemand.websol.barchart.com";
+    const now=new Date();
+    const target=shiftMonths(now,-PERIODS[state.period].months);
+    const historyType=state.period==="3y"?"weekly":"daily";
+    const historyStart=new Date(target);
+    historyStart.setDate(historyStart.getDate()-16);
+    const end=new Date(now);
+    end.setDate(end.getDate()+2);
+
+    const quoteUrl=`${endpoint}/getQuote.json?apikey=${encodeURIComponent(key)}&symbols=${encodeURIComponent(ticker)}&fields=fiftyTwoWkHigh%2CfiftyTwoWkHighDate%2CfiftyTwoWkLow%2CfiftyTwoWkLowDate`;
+    const histUrl=`${endpoint}/getHistory.json?apikey=${encodeURIComponent(key)}&symbol=${encodeURIComponent(ticker)}&type=${historyType}&startDate=${ymd(historyStart)}&endDate=${ymd(end)}&order=asc&splits=true&dividends=true&maxRecords=1000`;
+
+    const [qr,hr]=await Promise.all([fetch(quoteUrl),fetch(histUrl)]);
+    if(!qr.ok||!hr.ok)throw new Error(`Barchart request failed (${qr.status}/${hr.status}).`);
+    const q=await qr.json(),h=await hr.json();
+
+    if(q?.status?.code!==200)throw new Error(q?.status?.message||"Barchart quote request failed.");
+    if(h?.status?.code!==200)throw new Error(h?.status?.message||"Barchart history request failed.");
+
+    const quote=q?.results?.[0],records=h?.results||[];
+    if(!quote||!records.length)throw new Error("Barchart returned no market data for this ticker.");
+
+    const spot=Number(quote.lastPrice ?? quote.close);
+    if(!Number.isFinite(spot))throw new Error("Barchart quote did not include a usable price.");
+
+    const baseline=recordOnOrBefore(records,target);
+    if(!baseline)throw new Error("Barchart history did not include a baseline close for this horizon.");
+
+    const baselineClose=Number(baseline.close);
+    const perf=spot-baselineClose;
+
+    // Restrict period high/low to the actual performance interval beginning at baseline.
+    const baselineTime=isoDay(baseline.tradingDay).getTime();
+    const periodRecords=records.filter(r=>isoDay(r.tradingDay).getTime()>=baselineTime);
+    const highs=periodRecords.map(r=>Number(r.high)).filter(Number.isFinite);
+    const lows=periodRecords.map(r=>Number(r.low)).filter(Number.isFinite);
+
+    $("price").value=spot.toFixed(2);
+    $("perf").value=perf.toFixed(2);
+
+    state.extra={
+      baselineDate:baseline.tradingDay,
+      baselineClose,
+      returnPct:baselineClose ? (perf/baselineClose)*100 : NaN,
+      periodHigh:highs.length?Math.max(...highs):NaN,
+      periodLow:lows.length?Math.min(...lows):NaN,
+      high52:Number(quote.fiftyTwoWkHigh),
+      low52:Number(quote.fiftyTwoWkLow),
+      trend1m:trendFrom(records,spot,1),
+      trend3m:trendFrom(records,spot,3),
+      marketMode:quote.mode||"",
+      tradeTimestamp:quote.tradeTimestamp||quote.serverTimestamp||""
+    };
+    status(`Loaded ${ticker} from Barchart. Performance: ${money(perf)} since ${baseline.tradingDay}.`,"good");
+    render();
+  }catch(e){
+    const msg=(e&&e.message)?e.message:"Barchart fetch failed.";
+    status(`${msg} Manual mode is still available. If Safari reports a network/CORS error, your Barchart OnDemand account may need browser/site authorization.`,"warn");
+  }finally{
+    $("fetchBtn").disabled=false;
+  }
 }
 function loadPreset(which){
   setMode("manual");state.extra={};$("correction").value=10;$("corrLabel").textContent="10";$("increment").value="1";
@@ -311,24 +375,42 @@ function loadPreset(which){
 }
 function saveCurrent(){
   const r=calc();if(!r)return;const arr=JSON.parse(localStorage.getItem("splab_history")||"[]");
-  arr.unshift({ticker:$("ticker").value.trim().toUpperCase(),p:state.period,c:Math.round(r.c*100),low:r.low,mid:r.mid,high:r.high,at:new Date().toISOString()});
-  localStorage.setItem("splab_history",JSON.stringify(arr.slice(0,12)));renderHistory()
+  const id=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random());
+  arr.unshift({id,ticker:$("ticker").value.trim().toUpperCase(),p:state.period,c:Math.round(r.c*100),low:r.low,mid:r.mid,high:r.high,at:new Date().toISOString()});
+  localStorage.setItem("splab_history",JSON.stringify(arr.slice(0,30)));renderHistory()
+}
+function deleteSaved(id){
+  const arr=JSON.parse(localStorage.getItem("splab_history")||"[]");
+  localStorage.setItem("splab_history",JSON.stringify(arr.filter(x=>String(x.id)!==String(id))));
+  renderHistory();
+}
+function clearAllSaved(){
+  if(!confirm("Delete all saved analyses?"))return;
+  localStorage.removeItem("splab_history");renderHistory();
 }
 function renderHistory(){
   const arr=JSON.parse(localStorage.getItem("splab_history")||"[]"),el=$("history");
   if(!arr.length){el.innerHTML='<div class="notice">No saved analyses yet.</div>';return}
-  el.innerHTML=arr.map(x=>`<div class="history-item"><div><b>${x.ticker}</b><br><small>${PERIODS[x.p]?.label||x.p} • ${new Date(x.at).toLocaleString()}</small></div><div style="text-align:right"><b>${money(x.low,0)} / ${money(x.mid,0)} / ${money(x.high,0)}</b><br><small>Low / Mid / High</small></div></div>`).join("")
+  let changed=false;
+  arr.forEach((x,i)=>{if(!x.id){x.id=`legacy-${x.at||i}-${i}`;changed=true}});
+  if(changed)localStorage.setItem("splab_history",JSON.stringify(arr));
+  el.innerHTML=arr.map(x=>`<div class="history-item">
+    <div><b>${x.ticker}</b><br><small>${PERIODS[x.p]?.label||x.p} • ${new Date(x.at).toLocaleString()}</small></div>
+    <div style="text-align:right"><b>${money(x.low,0)} / ${money(x.mid,0)} / ${money(x.high,0)}</b><br><small>Low / Mid / High</small></div>
+    <div class="history-actions"><button class="btn danger" style="padding:8px 10px;font-size:11px" onclick="deleteSaved('${x.id}')">Delete</button></div>
+  </div>`).join("")
 }
 $("periodTabs").addEventListener("click",e=>{if(e.target.dataset.p)setPeriod(e.target.dataset.p)});
 $("dataSeg").addEventListener("click",e=>{if(e.target.dataset.mode)setMode(e.target.dataset.mode)});
 ["ticker","price","perf","divisor","increment"].forEach(id=>$(id).addEventListener("input",render));
 $("correction").addEventListener("input",()=>{$("corrLabel").textContent=$("correction").value;render()});
-$("analyzeBtn").addEventListener("click",()=>state.mode==="api"?fetchData():render());
+$("analyzeBtn").addEventListener("click",()=>state.mode==="barchart"?fetchData():render());
 $("fetchBtn").addEventListener("click",fetchData);
-$("forgetBtn").addEventListener("click",()=>{localStorage.removeItem("splab_key");$("apiKey").value="";status("API key removed.")});
-$("aaplPreset").addEventListener("click",()=>loadPreset("aapl"));$("xlkPreset").addEventListener("click",()=>loadPreset("xlk"));$("saveBtn").addEventListener("click",saveCurrent);
+$("forgetBtn").addEventListener("click",()=>{localStorage.removeItem("splab_barchart_key");$("apiKey").value="";status("Barchart API key removed from this iPhone.")});
+$("aaplPreset").addEventListener("click",()=>loadPreset("aapl"));$("xlkPreset").addEventListener("click",()=>loadPreset("xlk"));$("saveBtn").addEventListener("click",saveCurrent);$("clearAllBtn").addEventListener("click",clearAllSaved);
 $("dismissInstall").addEventListener("click",()=>{localStorage.setItem("splab_install_hint","1");$("installBanner").classList.remove("show")});
-const key=localStorage.getItem("splab_key");if(key)$("apiKey").value=key;
+const key=localStorage.getItem("splab_barchart_key");if(key)$("apiKey").value=key;
+$("ticker").addEventListener("input",()=>{$("barchartLink").href=`https://www.barchart.com/etfs-funds/quotes/${encodeURIComponent($("ticker").value.trim().toUpperCase()||"XLK")}/performance`;});
 renderHistory();render();
 
 const isiOS=/iphone|ipad|ipod/i.test(navigator.userAgent);

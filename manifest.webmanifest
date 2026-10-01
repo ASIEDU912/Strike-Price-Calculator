@@ -1,7 +1,7 @@
 {
-  "name": "Strike Price Lab",
-  "short_name": "Strike Lab",
-  "description": "Mobile-first strike price and entry-target calculator.",
+  "name": "Strike Price Calculator",
+  "short_name": "Strike Calc",
+  "description": "iPhone strike-price calculator with optional Barchart OnDemand market data.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
